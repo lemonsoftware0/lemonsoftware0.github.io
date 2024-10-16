@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lemon Software - Google</title>
+  <link rel="icon" href="http://lemonsoftware0.github.io/assets/favicon.png">
+  <script>
+    const clientId = "288161427949-966r6ifanv6qvgsdrfega28rdbnrqbg4.apps.googleusercontent.com";
+    const redirectUri = "https://lemonsoftware0.github.io/account/login.html";
+    const state = "secure_random_state";  // Güvenliğiniz için rastgele bir state parametresi ekleyin
+    const authEndpoint = "https://accounts.google.com/o/oauth2/auth";
+    const tokenEndpoint = "https://oauth2.googleapis.com/token";
+    const userInfoEndpoint = "https://www.googleapis.com/oauth2/v2/userinfo";
+
+    // URL'deki parametreleri almak için yardımcı fonksiyon
+    function getQueryParams() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        code: params.get("code"),
+        state: params.get("state")
+      };
+    }
+
+    // Google OAuth yetkilendirme sayfasına yönlendirme
+    function redirectToGoogleAuth() {
+      const authUrl = `${authEndpoint}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=profile email&state=${state}&access_type=online`;
+      window.location.href = authUrl;
+    }
+
+    // Yetkilendirme kodunu kullanarak access token almak
+    async function getAccessToken(code) {
+      const response = await fetch(tokenEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: new URLSearchParams({
+          code: code,
+          client_id: clientId,
+          client_secret: "YOUR_CLIENT_SECRET", // Bu bilgiyi Google Cloud Console'dan almanız gerekiyor.
+          redirect_uri: redirectUri,
+          grant_type: "authorization_code"
+        })
+      });
+      return response.json();
+    }
+
+    // Access token ile kullanıcı bilgilerini almak
+    async function getUserInfo(accessToken) {
+      const response = await fetch(`${userInfoEndpoint}?access_token=${accessToken}`);
+      return response.json();
+    }
+
+    // Kullanıcı bilgilerini yerel depolamaya kaydetme
+    function saveUserInfoToLocalStorage(userInfo) {
+      localStorage.setItem("Google_Account_Name", userInfo.given_name);
+      localStorage.setItem("Google_Account_Surname", userInfo.family_name);
+      localStorage.setItem("Google_Account_Address", userInfo.email);
+      localStorage.setItem("Google_Account_Photo", userInfo.picture);
+    }
+
+    // Sayfa yüklendiğinde yapılacak işlemler
+    async function handlePageLoad() {
+      const params = getQueryParams();
+
+      if (!params.code) {
+        // Eğer URL'de yetkilendirme kodu yoksa, Google OAuth sayfasına yönlendirme yap
+        redirectToGoogleAuth();
+      } else {
+        // Yetkilendirme kodu varsa, access token al ve kullanıcı bilgilerini kaydet
+        try {
+          const tokenResponse = await getAccessToken(params.code);
+          const accessToken = tokenResponse.access_token;
+
+          if (accessToken) {
+            const userInfo = await getUserInfo(accessToken);
+            saveUserInfoToLocalStorage(userInfo);
+
+            // Kullanıcı bilgileri kaydedildikten sonra yönlendirme yap
+            window.location.href = "https://lemonsoftware0.github.io/?command=afterlogin&with=Google";
+          } else {
+            console.error("Access token alınamadı.");
+          }
+        } catch (error) {
+          console.error("Bir hata oluştu:", error);
+        }
+      }
+    }
+
+    // Sayfa yüklendiğinde işlemleri başlat
+    window.onload = handlePageLoad;
+  </script>
+</head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-FELBM89GND"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-FELBM89GND');
+</script>
+<body>
+  <p>Yönlendiriliyor...</p>
+</body>
+</html>
