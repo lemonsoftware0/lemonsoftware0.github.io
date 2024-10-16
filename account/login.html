@@ -3,15 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lemon Software - Google</title>
-  <link rel="icon" href="http://lemonsoftware0.github.io/assets/favicon.png">
+  <title>Google - Lemon Software Bağlantısı</title>
   <script>
     const clientId = "288161427949-966r6ifanv6qvgsdrfega28rdbnrqbg4.apps.googleusercontent.com";
     const redirectUri = "https://lemonsoftware0.github.io/account/login.html";
-    const state = "secure_random_state";  // Güvenliğiniz için rastgele bir state parametresi ekleyin
-    const authEndpoint = "https://accounts.google.com/o/oauth2/auth";
-    const tokenEndpoint = "https://oauth2.googleapis.com/token";
-    const userInfoEndpoint = "https://www.googleapis.com/oauth2/v2/userinfo";
+    const state = "secure_random_state";  // Güvenli bir rastgele state parametresi
 
     // URL'deki parametreleri almak için yardımcı fonksiyon
     function getQueryParams() {
@@ -24,35 +20,35 @@
 
     // Google OAuth yetkilendirme sayfasına yönlendirme
     function redirectToGoogleAuth() {
-      const authUrl = `${authEndpoint}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=profile email&state=${state}&access_type=online`;
+      const authUrl = `https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=profile email&state=${state}&access_type=online`;
       window.location.href = authUrl;
     }
 
-    // Yetkilendirme kodunu kullanarak access token almak
-    async function getAccessToken(code) {
-      const response = await fetch(tokenEndpoint, {
-        method: "POST",
+    // Yetkilendirme kodunu kullanarak backend'den access token alma isteği gönder
+    async function getAccessTokenFromServer(code) {
+      const response = await fetch('http://localhost:5000/getAccessToken', {  // Flask sunucun burada çalışıyor
+        method: 'POST',
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
+          'Content-Type': 'application/json'
         },
-        body: new URLSearchParams({
-          code: code,
-          client_id: clientId,
-          client_secret: "YOUR_CLIENT_SECRET", // Bu bilgiyi Google Cloud Console'dan almanız gerekiyor.
-          redirect_uri: redirectUri,
-          grant_type: "authorization_code"
-        })
+        body: JSON.stringify({ code })
       });
       return response.json();
     }
 
-    // Access token ile kullanıcı bilgilerini almak
-    async function getUserInfo(accessToken) {
-      const response = await fetch(`${userInfoEndpoint}?access_token=${accessToken}`);
+    // Access token ile backend'den kullanıcı bilgilerini al
+    async function getUserInfoFromServer(accessToken) {
+      const response = await fetch('http://localhost:5000/getUserInfo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ accessToken })
+      });
       return response.json();
     }
 
-    // Kullanıcı bilgilerini yerel depolamaya kaydetme
+    // Kullanıcı bilgilerini yerel depolamaya kaydet
     function saveUserInfoToLocalStorage(userInfo) {
       localStorage.setItem("Google_Account_Name", userInfo.given_name);
       localStorage.setItem("Google_Account_Surname", userInfo.family_name);
@@ -68,13 +64,14 @@
         // Eğer URL'de yetkilendirme kodu yoksa, Google OAuth sayfasına yönlendirme yap
         redirectToGoogleAuth();
       } else {
-        // Yetkilendirme kodu varsa, access token al ve kullanıcı bilgilerini kaydet
         try {
-          const tokenResponse = await getAccessToken(params.code);
+          // Backend'e kodu gönder ve access token al
+          const tokenResponse = await getAccessTokenFromServer(params.code);
           const accessToken = tokenResponse.access_token;
 
           if (accessToken) {
-            const userInfo = await getUserInfo(accessToken);
+            // Backend'den kullanıcı bilgilerini al ve yerel depolamaya kaydet
+            const userInfo = await getUserInfoFromServer(accessToken);
             saveUserInfoToLocalStorage(userInfo);
 
             // Kullanıcı bilgileri kaydedildikten sonra yönlendirme yap
@@ -92,16 +89,7 @@
     window.onload = handlePageLoad;
   </script>
 </head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-FELBM89GND"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-FELBM89GND');
-</script>
 <body>
-  <p>Yönlendiriliyor...</p>
+  <p>Devam ediyor... (Bu sayfada sıkışırsan geliştirici konsolunu kontrol et)</p>
 </body>
 </html>
