@@ -1,0 +1,12 @@
+<script>
+    (function() {
+        const hashParams = new URLSearchParams(window.location.hash.substr(1));
+        const token = hashParams.get('access_token');
+        if (token) {
+            window.opener.postMessage({ access_token: token }, '*');
+            window.close();
+        } else {
+            console.error('Failed');
+        }
+    })();
+</script>
